@@ -1,0 +1,10 @@
+/* Penyesuaian tampilan di atas build dashboard (bundle React yang di-minify).
+   Dimuat oleh index.html setelah stylesheet bawaan; dipasang otomatis oleh
+   tools/apply-live-sync.py saat build diganti. */
+
+/* Panel filter (kolom cari, tombol cepat, chip 39 jenis usaha) bawaan dashboard
+   `sticky top-[72px]` dan setinggi 350-390px, jadi menempel di atas layar dan
+   menutupi 40-60% layar saat daftar prospek di-scroll. Dibuat ikut scroll biasa. */
+div.col-span-12.sticky.z-20 {
+  position: static;
+}
