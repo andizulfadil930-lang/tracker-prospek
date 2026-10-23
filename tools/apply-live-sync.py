@@ -11,6 +11,8 @@ Yang dilakukan:
      setter state, kunci localStorage) berubah tiap build, jadi dicari lewat pola.
   2. Memuat live-sync.js sebelum </body>.
   3. Membuang blok fetch lama (AUTO-FETCH LIVE DATA...) kalau ada.
+  4. Memuat overrides.css (penyesuaian tampilan, mis. panel filter tidak lagi menempel
+     dan menutupi daftar) sebelum </head>.
 
 Berhenti dengan pesan jelas kalau polanya tidak ketemu atau tidak unik, supaya tidak
 menghasilkan index.html setengah jadi. Hanya pustaka standar Python.
@@ -57,6 +59,11 @@ def apply(html):
 
     # blok fetch lama (hanya ada di build lama)
     html = re.sub(r"<script>\n// AUTO-FETCH LIVE DATA FROM GOOGLE SHEET.*?</script>\n", "", html, flags=re.S)
+
+    if "overrides.css" not in html:
+        if html.count("</head>") != 1:
+            sys.exit("</head> harus ada tepat 1x")
+        html = html.replace("</head>", '<link rel="stylesheet" href="overrides.css">\n</head>')
 
     if "live-sync.js" not in html:
         if html.count("</body>") != 1:
