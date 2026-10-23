@@ -30,13 +30,13 @@
   var ALIASES = {
     nama: ["nama", "namausaha", "namabisnis", "name"],
     cluster: ["cluster", "jenisusaha", "kategori", "jenis"],
-    alamat: ["alamat", "lokasi", "address"],
-    phone: ["phone", "hp", "nohp", "nomorhp", "telepon", "telp", "whatsapp", "wa"],
+    alamat: ["alamat", "alamatlengkap", "lokasi", "address"],
+    phone: ["phone", "hp", "hpwa", "nohp", "nohpwa", "nomorhp", "telepon", "telp", "whatsapp", "wa"],
     website: ["website", "web", "situs", "url"],
     statusFollowup: ["statusfollowup", "status"],
-    tanggalFollowup: ["tanggalfollowup", "tanggal", "tgl"],
+    tanggalFollowup: ["tanggalfollowup", "tglfollowup", "tanggal", "tgl"],
     catatan: ["catatan", "notes", "note", "keterangan"],
-    nilaiPotensi: ["nilaipotensi", "nilai", "potensi"],
+    nilaiPotensi: ["nilaipotensi", "potensinilai", "nilai", "potensi"],
     prioritas: ["prioritas", "priority"],
   };
 
@@ -90,10 +90,14 @@
   }
 
   // Baris Sheet -> objek prospek bentuk aplikasi. Baris tanpa nama atau tanpa HP
-  // valid dilewati (anti-double aplikasi berbasis HP).
+  // valid dilewati (anti-double aplikasi berbasis HP). `missing` berisi kolom wajib
+  // (nama, phone) yang tidak ketemu di header; kalau tidak kosong, tidak ada baris
+  // yang diproses.
   function toProspects(table, today) {
-    if (table.length < 2) return { rows: [], skipped: 0 };
+    if (table.length < 2) return { rows: [], skipped: 0, missing: [] };
     var cols = mapColumns(table[0]);
+    var missing = ["nama", "phone"].filter(function (f) { return cols[f] === undefined; });
+    if (missing.length) return { rows: [], skipped: 0, missing: missing };
     var rows = [], skipped = 0;
     table.slice(1).forEach(function (r) {
       function get(field) {
@@ -118,7 +122,7 @@
         prioritas: get("prioritas") || "Medium",
       });
     });
-    return { rows: rows, skipped: skipped };
+    return { rows: rows, skipped: skipped, missing: [] };
   }
 
   // Sisakan baris yang HP-nya belum ada di `existing` dan tidak dobel di dalam Sheet.
@@ -187,7 +191,10 @@
   function sync() {
     return Promise.all([fetchSheet(), whenAppReady()])
       .then(function (out) {
-        var parsed = toProspects(parseCsv(out[0]), new Date().toISOString().slice(0, 10));
+        var table = parseCsv(out[0]);
+        var parsed = toProspects(table, new Date().toISOString().slice(0, 10));
+        if (parsed.missing.length)
+          throw new Error("kolom " + parsed.missing.join("/") + " tidak ditemukan di header Sheet (" + table[0].join(", ") + ")");
         var fresh = pickNew(parsed.rows, existingProspects());
         if (fresh.length)
           window.dispatchEvent(new CustomEvent("prospek:sync", { detail: { rows: fresh } }));
