@@ -19,7 +19,11 @@ https://docs.google.com/spreadsheets/d/11Gyj1wDkb5zquc3IRv32GOnZ7gJe6DZQzB296ky3
 - Kalau header Sheet tidak punya kolom `Nama` sama sekali, dipakai urutan kolom bawaan dashboard (sama dengan Export CSV). Kalau kolom Nama atau HP tidak ketemu, muncul toast oranye berisi daftar header dan tidak ada baris yang ditambahkan.
 - Sheet belum publik -> toast oranye "Gagal sinkron Sheet: Sheet belum publik (HTTP 401)" dan data yang ada tetap dipakai.
 - Paksa sinkron dari console browser: `syncProspekNow()`.
-- Cara kerja: `live-sync.js` mengirim baris baru lewat event `prospek:sync`. Listener-nya adalah satu `useEffect` yang disisipkan ke bundle React di `index.html` (cari `prospek:sync`). Kalau `index.html` dibangun ulang dari sumbernya, sisipan itu harus dipasang lagi.
+- Cara kerja: `live-sync.js` mengirim baris baru lewat event `prospek:sync`. Listener-nya adalah satu `useEffect` yang disisipkan ke bundle React di `index.html` (cari `prospek:sync`). Kalau `index.html` diganti dengan build dashboard baru, pasang ulang dengan `python3 tools/apply-live-sync.py <build-baru.html> index.html`. Skrip itu mencari nama variabel di bundle lewat pola dan berhenti dengan pesan jelas kalau polanya tidak ketemu.
+
+## Mengganti versi dashboard
+- Dashboard menyimpan data di `localStorage` browser dengan kunci yang berganti tiap versi (sekarang `prospek-v6-97-verified-data`). Saat dibuka, versi baru memakai data versi lama di browser itu kalau ada (edit lokal ikut terbawa), jadi **data bawaan versi baru hanya terlihat di browser yang belum pernah membuka dashboard**.
+- Untuk memakai data bawaan versi baru di browser lama: tombol "Reset ke ... Awal" di dashboard (edit lokal hilang, baris dari Sheet masuk lagi otomatis saat sinkron berikutnya).
 - Backup harian via GitHub Actions **belum ada** (tidak ada `.github/workflows/` di repo ini).
 
 ## Cara Deploy (sudah dikonfigurasi untuk username kamu)
