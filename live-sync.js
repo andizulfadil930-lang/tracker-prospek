@@ -19,7 +19,9 @@
     // kalau tidak Google membalas 401/halaman login dan sinkronisasi gagal.
     sheetCsvUrl:
       "https://docs.google.com/spreadsheets/d/11Gyj1wDkb5zquc3IRv32GOnZ7gJe6DZQzB296ky3tJM/gviz/tq?tqx=out:csv&sheet=Prospek",
-    storageKey: "prospek-v5-97-data", // sama dengan `so` di bundle
+    // Cadangan saja: kunci sebenarnya dibaca dari window.__prospekStorageKey, yang
+    // diisi listener di bundle (jadi tidak perlu diedit saat build dashboard berganti).
+    storageKey: "prospek-v6-97-verified-data",
     intervalMs: 5 * 60 * 1000,
   };
 
@@ -167,7 +169,7 @@
 
   function existingProspects() {
     try {
-      var arr = JSON.parse(localStorage.getItem(CONFIG.storageKey) || "[]");
+      var arr = JSON.parse(localStorage.getItem(window.__prospekStorageKey || CONFIG.storageKey) || "[]");
       return Array.isArray(arr) ? arr : [];
     } catch (e) { return []; }
   }
