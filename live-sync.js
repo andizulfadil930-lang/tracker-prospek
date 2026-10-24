@@ -25,9 +25,13 @@
     intervalMs: 5 * 60 * 1000,
   };
 
-  // Urutan kolom bawaan aplikasi (export/import CSV di dashboard), dipakai kalau
-  // header Sheet tidak dikenali.
+  // Dua urutan kolom yang dipakai kalau baris pertama Sheet bukan header (header
+  // terhapus, atau data ditempel tanpa header): urutan Sheet "Prospek" dari hunter,
+  // dan urutan export/import CSV di dashboard.
+  var SHEET_ORDER = ["no", "nama", "cluster", "alamat", "phone", "website", "jam", "statusAktif", "prioritas", "statusFollowup", "tanggalFollowup", "catatan", "nilaiPotensi", "angle"];
   var APP_ORDER = ["nama", "cluster", "alamat", "phone", "website", "statusFollowup", "tanggalFollowup", "catatan", "nilaiPotensi", "prioritas"];
+  var STATUSES = ["Belum Hubungi", "Sudah WA", "Follow-up 1", "Follow-up 2", "Meeting", "Closing", "Gagal"];
+  var UNITS = { jt: 1e6, juta: 1e6, rb: 1e3, ribu: 1e3, k: 1e3, miliar: 1e9, milyar: 1e9 };
 
   var ALIASES = {
     nama: ["nama", "namausaha", "namabisnis", "name"],
@@ -76,7 +80,8 @@
     return String(h).toLowerCase().replace(/[^a-z0-9]/g, "");
   }
 
-  // -> { field: indeks kolom }. Tanpa header "nama" dikenali, pakai urutan bawaan.
+  // -> { field: indeks kolom } berdasarkan nama header; field yang tidak dikenali
+  // tidak ada di hasil.
   function mapColumns(headerRow) {
     var byHeader = {};
     headerRow.forEach(function (h, i) {
@@ -85,30 +90,94 @@
         if (byHeader[field] === undefined && ALIASES[field].indexOf(n) !== -1) byHeader[field] = i;
       });
     });
-    if (byHeader.nama !== undefined) return byHeader;
-    var positional = {};
-    APP_ORDER.forEach(function (field, i) { positional[field] = i; });
-    return positional;
+    return byHeader;
+  }
+
+  function orderToCols(order) {
+    var cols = {};
+    order.forEach(function (field, i) { cols[field] = i; });
+    return cols;
+  }
+
+  // Isi sel (tanpa spasi pinggir); strip "-" dianggap kosong.
+  function cell(r, cols, field) {
+    var i = cols[field];
+    if (i === undefined || r[i] === undefined) return "";
+    var v = r[i].trim();
+    return /^[-–—]$/.test(v) ? "" : v;
+  }
+
+  function rowValid(r, cols) {
+    return cell(r, cols, "nama") !== "" && phoneKey(cell(r, cols, "phone")).length >= 8;
+  }
+
+  // Baris pertama dianggap header kalau ada kolom "Nama". Kalau tidak, semua baris
+  // dianggap data, dan urutan kolom dipilih (Sheet atau dashboard) yang paling banyak
+  // menghasilkan baris valid di 10 baris pertama.
+  function detectLayout(table) {
+    var byHeader = mapColumns(table[0]);
+    if (byHeader.nama !== undefined) return { cols: byHeader, start: 1, kind: "header", ok: 0 };
+    var best = null;
+    [["sheet", SHEET_ORDER], ["app", APP_ORDER]].forEach(function (c) {
+      var cols = orderToCols(c[1]);
+      var ok = table.slice(0, 10).filter(function (r) { return rowValid(r, cols); }).length;
+      if (!best || ok > best.ok) best = { cols: cols, start: 0, kind: c[0], ok: ok };
+    });
+    return best;
+  }
+
+  // Nilai bentuk aplikasi: status dan prioritas dibandingkan persis oleh dashboard,
+  // tanggal harus YYYY-MM-DD (input type=date).
+  function normStatus(v) {
+    var n = normHeader(v);
+    for (var i = 0; i < STATUSES.length; i++) if (normHeader(STATUSES[i]) === n) return STATUSES[i];
+    return "Belum Hubungi";
+  }
+
+  function normPrioritas(v) {
+    var n = normHeader(v);
+    if (n === "high" || n === "tinggi") return "High";
+    if (n === "low" || n === "rendah") return "Low";
+    return "Medium";
+  }
+
+  function normTanggal(v, today) {
+    var m;
+    if (/^\d{4}-\d{2}-\d{2}/.test(v)) return v.slice(0, 10);
+    if ((m = v.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/)))
+      return m[3] + "-" + ("0" + m[2]).slice(-2) + "-" + ("0" + m[1]).slice(-2);
+    return today;
+  }
+
+  // "Rp 1.5jt" -> 1500000, "Rp 2,5 juta" -> 2500000, "Rp 12.500.000" -> 12500000.
+  function parseNilai(v) {
+    var t = String(v).toLowerCase().replace(/rp\.?/g, "").trim();
+    var m = t.match(/(\d[\d.,]*)\s*(jt|juta|rb|ribu|k|miliar|milyar)\b/);
+    if (m) {
+      var num = /^\d{1,3}(\.\d{3})+$/.test(m[1]) ? m[1].replace(/\./g, "") : m[1].replace(",", ".");
+      var n = parseFloat(num);
+      if (!isNaN(n)) return Math.round(n * UNITS[m[2]]);
+    }
+    return Number(t.replace(/[^0-9]/g, "")) || 5000000;
   }
 
   // Baris Sheet -> objek prospek bentuk aplikasi. Baris tanpa nama atau tanpa HP
   // valid dilewati (anti-double aplikasi berbasis HP). `missing` berisi kolom wajib
-  // (nama, phone) yang tidak ketemu di header; kalau tidak kosong, tidak ada baris
-  // yang diproses.
+  // (nama, phone) yang tidak terbaca; kalau tidak kosong, tidak ada baris yang diproses.
+  // `kind`: "header", "sheet" atau "app" (cara kolom dibaca, lihat detectLayout).
   function toProspects(table, today) {
-    if (table.length < 2) return { rows: [], skipped: 0, missing: [] };
-    var cols = mapColumns(table[0]);
+    if (!table.length) return { rows: [], skipped: 0, missing: [], kind: "kosong" };
+    var layout = detectLayout(table), cols = layout.cols, kind = layout.kind;
     var missing = ["nama", "phone"].filter(function (f) { return cols[f] === undefined; });
-    if (missing.length) return { rows: [], skipped: 0, missing: missing };
+    if (missing.length) return { rows: [], skipped: 0, missing: missing, kind: kind };
+    if (kind !== "header" && layout.ok === 0)
+      return { rows: [], skipped: table.length, missing: ["phone"], kind: kind };
     var rows = [], skipped = 0;
-    table.slice(1).forEach(function (r) {
-      function get(field) {
-        var i = cols[field];
-        return i === undefined || r[i] === undefined ? "" : r[i].trim();
-      }
+    table.slice(layout.start).forEach(function (r) {
+      function get(field) { return cell(r, cols, field); }
       var nama = get("nama"), phone = get("phone"), key = phoneKey(phone);
       if (!nama || key.length < 8) { skipped++; return; }
-      var status = get("statusFollowup") || "Belum Hubungi";
+      var status = normStatus(get("statusFollowup"));
       rows.push({
         id: "sheet-" + key,
         nama: nama,
@@ -118,13 +187,13 @@
         website: get("website"),
         statusAktif: status !== "Gagal",
         statusFollowup: status,
-        tanggalFollowup: get("tanggalFollowup") || today,
+        tanggalFollowup: normTanggal(get("tanggalFollowup"), today),
         catatan: get("catatan"),
-        nilaiPotensi: Number(get("nilaiPotensi").replace(/[^0-9]/g, "")) || 5000000,
-        prioritas: get("prioritas") || "Medium",
+        nilaiPotensi: parseNilai(get("nilaiPotensi")),
+        prioritas: normPrioritas(get("prioritas")),
       });
     });
-    return { rows: rows, skipped: skipped, missing: [] };
+    return { rows: rows, skipped: skipped, missing: [], kind: kind };
   }
 
   // Sisakan baris yang HP-nya belum ada di `existing` dan tidak dobel di dalam Sheet.
@@ -144,6 +213,11 @@
     parseCsv: parseCsv,
     phoneKey: phoneKey,
     mapColumns: mapColumns,
+    detectLayout: detectLayout,
+    parseNilai: parseNilai,
+    normPrioritas: normPrioritas,
+    normStatus: normStatus,
+    normTanggal: normTanggal,
     toProspects: toProspects,
     pickNew: pickNew,
   };
@@ -196,7 +270,13 @@
         var table = parseCsv(out[0]);
         var parsed = toProspects(table, new Date().toISOString().slice(0, 10));
         if (parsed.missing.length)
-          throw new Error("kolom " + parsed.missing.join("/") + " tidak ditemukan di header Sheet (" + table[0].join(", ") + ")");
+          throw new Error(
+            parsed.kind === "header"
+              ? "kolom " + parsed.missing.join("/") + " tidak ditemukan di header Sheet (" + table[0].join(", ") + ")"
+              : "tidak ada kolom HP yang terbaca di 10 baris pertama Sheet (" + table.length + " baris)"
+          );
+        if (!parsed.rows.length && parsed.skipped)
+          throw new Error("0 dari " + parsed.skipped + " baris Sheet terbaca (nama atau HP kosong/tidak valid)");
         var fresh = pickNew(parsed.rows, existingProspects());
         if (fresh.length)
           window.dispatchEvent(new CustomEvent("prospek:sync", { detail: { rows: fresh } }));
