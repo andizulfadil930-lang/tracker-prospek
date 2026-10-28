@@ -36,23 +36,25 @@
     own: "Saya biasa bantu bikin landing page 1 halaman khusus iklan/Google Maps, fokusnya satu: calon customer langsung chat WA.",
   };
 
+  var PENGIRIM = "Andi dari Ritiros Studio";
+
   var SITE_OPENER = {
-    none: "Saya nemu {nama} di Google, tapi belum ada websitenya.",
-    ig: "Saya lihat {nama} di Instagram, tapi belum ada websitenya di Google.",
-    free: "Saya nemu {nama} di Google, tapi websitenya masih versi gratisan.",
-    own: "Saya lihat {nama} sudah punya website.",
+    none: "Kebetulan nemu {nama} di Google, tapi belum ada websitenya.",
+    ig: "Kebetulan lihat {nama} di Instagram, tapi belum ada websitenya di Google.",
+    free: "Kebetulan nemu {nama} di Google, tapi websitenya masih versi gratisan.",
+    own: "Kebetulan lihat {nama} sudah punya website.",
   };
 
   var OPENING_OPENER = {
-    open: "Saya lihat {nama} baru buka, selamat ya!",
-    soon: "Saya lihat {nama} sebentar lagi buka, semoga lancar ya!",
+    open: "Kebetulan lihat {nama} baru buka, selamat ya!",
+    soon: "Kebetulan lihat {nama} sebentar lagi buka, semoga lancar ya!",
   };
 
-  var GREETINGS = ["Selamat {waktu} Kak.", "Halo Kak, selamat {waktu}."];
+  var GREETINGS = ["Selamat {waktu} Kak, saya {pengirim}.", "Halo Kak, selamat {waktu}. Saya {pengirim}."];
 
   var CLOSINGS = [
-    "Penjelasannya ada di video ini ya. Kalau tertarik, contohnya saya buatkan gratis, tanpa komitmen \uD83D\uDE4F",
-    "Videonya saya lampirkan ya. Kalau cocok, boleh saya buatkan contoh gratis buat usaha Kakak? \uD83D\uDE4F",
+    "Penjelasannya ada di video ini ya. Kalau tertarik, contohnya saya buatkan gratis \uD83D\uDE4F",
+    "Videonya saya lampirkan ya. Kalau cocok, saya buatkan contoh gratis buat usaha Kakak? \uD83D\uDE4F",
   ];
 
   // Kota dari alamat; alamat di data campur aduk ("Jaksel", "Kebon Jeruk Jakbar", "Bekasi - Pekayon").
@@ -137,7 +139,7 @@
     var manfaat = buka ? BENEFIT.opening : web === "own" ? BENEFIT.own : BENEFIT[segmen(p.cluster)];
 
     return [
-      pick(GREETINGS, p, "sapa").replace("{waktu}", waktu(now)) + " " + kalimat.replace("{nama}", function () { return nama; }),
+      pick(GREETINGS, p, "sapa").replace("{waktu}", waktu(now)).replace("{pengirim}", PENGIRIM) + " " + kalimat.replace("{nama}", function () { return nama; }),
       manfaat.replace("{di}", di).replace("{noun}", function () { return noun; }),
       pick(CLOSINGS, p, "tutup"),
     ].join("\n\n");
