@@ -6,8 +6,9 @@
 // diganti. Jadi teks pesan cukup diedit di sini.
 //
 // Pesan dirakit dari tiga bagian: pembuka (sapaan + yang terlihat dari usahanya),
-// manfaat (menurut jenis usaha), dan penutup. Video motion penjelasnya dilampirkan
-// manual saat kirim (link wa.me tidak bisa membawa berkas), jadi pesan hanya menyebutnya.
+// manfaat (menurut jenis usaha), dan penutup berisi link video motion penjelasnya
+// (promo/index.html). Link wa.me tidak bisa membawa berkas, jadi videonya dikirim sebagai
+// link; WhatsApp menampilkannya sebagai kartu pratinjau yang bisa diketuk untuk memutar.
 //
 // Pola UMD-lite: window.coldReachMessage di browser, module.exports di Node.
 (function (root, factory) {
@@ -52,9 +53,11 @@
 
   var GREETINGS = ["Selamat {waktu} Kak, saya {pengirim}.", "Halo Kak, selamat {waktu}. Saya {pengirim}."];
 
+  var VIDEO_URL = "https://andizulfadil930-lang.github.io/tracker-prospek/promo/";
+
   var CLOSINGS = [
-    "Penjelasannya ada di video ini ya. Kalau tertarik, contohnya saya buatkan gratis \uD83D\uDE4F",
-    "Videonya saya lampirkan ya. Kalau cocok, saya buatkan contoh gratis buat usaha Kakak? \uD83D\uDE4F",
+    "Videonya cuma 20 detik, cek di sini ya: {video}\nKalau tertarik, contohnya saya buatkan gratis \uD83D\uDE4F",
+    "Penjelasannya di video 20 detik ini: {video}\nKalau cocok, saya buatkan contoh gratis buat usaha Kakak? \uD83D\uDE4F",
   ];
 
   // Kota dari alamat; alamat di data campur aduk ("Jaksel", "Kebon Jeruk Jakbar", "Bekasi - Pekayon").
@@ -141,7 +144,7 @@
     return [
       pick(GREETINGS, p, "sapa").replace("{waktu}", waktu(now)).replace("{pengirim}", PENGIRIM) + " " + kalimat.replace("{nama}", function () { return nama; }),
       manfaat.replace("{di}", di).replace("{noun}", function () { return noun; }),
-      pick(CLOSINGS, p, "tutup"),
+      pick(CLOSINGS, p, "tutup").replace("{video}", VIDEO_URL),
     ].join("\n\n");
   }
 
