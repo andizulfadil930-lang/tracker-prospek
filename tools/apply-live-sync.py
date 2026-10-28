@@ -13,6 +13,11 @@ Yang dilakukan:
   3. Membuang blok fetch lama (AUTO-FETCH LIVE DATA...) kalau ada.
   4. Memuat overrides.css (penyesuaian tampilan, mis. panel filter tidak lagi menempel
      dan menutupi daftar) sebelum </head>.
+  5. Mengganti dua template pesan WhatsApp bawaan build (pesan umum "Halo Pak ..." dan
+     pesan grand opening "Halo Kak ...") dengan panggilan ke cold-reach.js, dan memuat
+     berkas itu sebelum </body>. Langkah ini tidak fatal: kalau template tidak ketemu
+     (teks bawaan build berubah), pesan bawaan build tetap dipakai dan hasil akhirnya
+     menyebutnya.
 
 Berhenti dengan pesan jelas kalau polanya tidak ketemu atau tidak unik, supaya tidak
 menghasilkan index.html setengah jadi. Hanya pustaka standar Python.
@@ -21,6 +26,32 @@ import re
 import sys
 
 NAME = r"[A-Za-z_$][\w$]*"
+
+# Awal teks dua template pesan WA bawaan build: pesan umum, lalu pesan grand opening.
+WA_TEMPLATES = ("Halo Pak ", "Halo Kak ")
+
+
+def apply_cold_reach(html):
+    """Arahkan template pesan WA ke window.coldReachMessage (cold-reach.js).
+
+    Kembalian: (html, terpasang). Tidak pernah berhenti dengan sys.exit.
+    """
+    if "coldReachMessage" in html:
+        return html, True
+    patched = html
+    for opening in WA_TEMPLATES:
+        # Template literal tanpa backtick di dalamnya: function <fn>(e){return`Halo Pak ${e.nama} ...`}
+        found = list(re.finditer(
+            rf"function ({NAME})\(e\)\{{return`{re.escape(opening)}\$\{{e\.nama\}}[^`]*`\}}", patched))
+        if len(found) != 1 or patched.count("</body>") != 1:
+            return html, False
+        m = found[0]
+        # Cadangan kalau cold-reach.js gagal dimuat: jangan sampai dashboard error.
+        call = f'function {m.group(1)}(e){{return window.coldReachMessage?window.coldReachMessage(e):"Halo "+e.nama}}'
+        patched = patched[:m.start()] + call + patched[m.end():]
+    if "cold-reach.js" not in patched:
+        patched = patched.replace("</body>", '<script src="cold-reach.js"></script>\n</body>')
+    return patched, True
 
 
 def apply(html):
@@ -65,11 +96,13 @@ def apply(html):
             sys.exit("</head> harus ada tepat 1x")
         html = html.replace("</head>", '<link rel="stylesheet" href="overrides.css">\n</head>')
 
+    html, pesan = apply_cold_reach(html)
+
     if "live-sync.js" not in html:
         if html.count("</body>") != 1:
             sys.exit("</body> harus ada tepat 1x")
         html = html.replace("</body>", '<script src="live-sync.js"></script>\n</body>')
-    return html, react, setter, key
+    return html, react, setter, key, pesan
 
 
 if __name__ == "__main__":
@@ -77,7 +110,10 @@ if __name__ == "__main__":
         sys.exit(__doc__)
     src, dst = sys.argv[1], sys.argv[2]
     with open(src, encoding="utf-8") as f:
-        out, react, setter, key = apply(f.read())
+        out, react, setter, key, pesan = apply(f.read())
     with open(dst, "w", encoding="utf-8") as f:
         f.write(out)
     print(f"ok: {dst} (react={react}, setter={setter}, kunci={key})")
+    if not pesan:
+        print("peringatan: template pesan WA bawaan build tidak ketemu, pesan bawaan build dipakai "
+              "(cold-reach.js tidak terpasang)", file=sys.stderr)
