@@ -32,6 +32,9 @@ Pratinjau "WA Script Generator", tombol Copy Script, dan link Buka WA memakai pe
 - Ubah kalimat dengan mengedit konstanta di `cold-reach.js` (`BENEFIT`, `SITE_OPENER`, `OPENING_OPENER`, `GREETINGS`, `CLOSINGS`, `PENGIRIM`); `index.html` tidak perlu disentuh.
 - Status "baru buka" dibaca dari catatan, bukan dari nomor baris, jadi prospek 95-97 (taman, plafon, fogging) tidak lagi dapat ucapan grand opening. Filter "Grand Opening (83-97)" di dashboard masih menghitung nomor 83-97.
 
+## Cek kolom Website
+`python3 tools/check-websites.py` membaca Sheet dan menulis laporan `hasil-cek-web.csv`: tiap baris ditandai ADA, MATI, PINDAH (dialihkan ke domain lain), GRATISAN, IG/FB, atau BELUM ADA. Sheet dan dashboard tidak diubah. Dengan `SERPER_API_KEY` dan opsi `--cari`, baris yang kosong dicari di Google dan ditandai KANDIDAT kalau ada situs yang cocok nama usahanya dan memuat nama atau nomor HP-nya.
+
 ## Mengganti versi dashboard
 - Dashboard menyimpan data di `localStorage` browser dengan kunci yang berganti tiap versi (sekarang `prospek-v6-97-verified-data`). Saat dibuka, versi baru memakai data versi lama di browser itu kalau ada (edit lokal ikut terbawa), jadi **data bawaan versi baru hanya terlihat di browser yang belum pernah membuka dashboard**.
 - Untuk memakai data bawaan versi baru di browser lama: tombol "Reset ke ... Awal" di dashboard (edit lokal hilang, baris dari Sheet masuk lagi otomatis saat sinkron berikutnya).
