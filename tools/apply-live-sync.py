@@ -22,6 +22,7 @@ Yang dilakukan:
   6. Memasang filter "Jenis Web" (web-kind.js): Ada Website, Web Gratisan, Web Mati, Cuma WA,
      Cuma Instagram, Cuma Facebook. Untuk index.html yang sudah terpasang live-sync, pasang
      hanya filternya dengan: python3 tools/apply-live-sync.py --web-filter index.html index.html
+  7. "Filter Jenis Usaha" (100+ chip) dijadikan dropdown yang tertutup bawaan.
 
 Berhenti dengan pesan jelas kalau polanya tidak ketemu atau tidak unik, supaya tidak
 menghasilkan index.html setengah jadi. Hanya pustaka standar Python.
@@ -119,6 +120,39 @@ def apply_web_filter(html):
     return html
 
 
+def apply_cluster_dropdown(html):
+    """Jadikan "FILTER JENIS USAHA" (100+ chip yang memenuhi layar desktop) sebuah dropdown.
+
+    Bundle sudah punya daftar centang untuk layar kecil (tombol "Dropdown"/"Tutup", daftar
+    bergulir). Di sini daftar itu dipakai di semua ukuran layar: tertutup, hanya tombol "All"
+    dan jenis yang sedang dipilih yang tampil; dibuka lewat tombol "Pilih Jenis Usaha".
+    """
+    if "Pilih Jenis Usaha" in html:
+        return html
+
+    def sub(old, new, what, count=1):
+        nonlocal html
+        found = html.count(old)
+        if found != count:
+            sys.exit(f"dropdown jenis usaha: {what} harus ketemu {count}x, ketemu {found}x")
+        html = html.replace(old, new)
+
+    # chip desktop disembunyikan, daftar/dropdown (yang tadinya hanya layar kecil) selalu dipakai
+    sub('className:"hidden lg:flex gap-2 flex-wrap",children:', 'className:"hidden",children:', "chip desktop")
+    sub('f("div",{className:"lg:hidden",children:!g?', 'f("div",{className:"",children:!g?', "wadah dropdown")
+    sub('className:"lg:hidden h-[28px] px-3 rounded-full border', 'className:"h-[28px] px-3 rounded-full border', "tombol Dropdown")
+    sub('g?"Tutup":"Dropdown"', 'g?"Tutup":"Pilih Jenis Usaha"', "label tombol")
+
+    # tertutup: hanya "All" dan jenis yang dipilih
+    m = list(re.finditer(
+        rf'whitespace-nowrap h-\[34px\] px-3\.5 rounded-full border text-\[12px\] font-medium \$\{{[^`]*?\}}`,children:\["All \(",{NAME}\.total,"\)"\]\}}\),({NAME})\.map\(\(s\)=>\{{let _=({NAME})\.includes\(s\)', html))
+    if len(m) != 1:
+        sys.exit(f"dropdown jenis usaha: baris chip tertutup harus ketemu 1x, ketemu {len(m)}x")
+    m = m[0]
+    html = html[:m.start(1)] + f"{m.group(1)}.filter((s)=>{m.group(2)}.includes(s))" + html[m.end(1):]
+    return html
+
+
 def apply(html):
     if "prospek:sync" in html:
         sys.exit("sudah dipasang: 'prospek:sync' sudah ada di berkas ini")
@@ -163,6 +197,7 @@ def apply(html):
 
     html, pesan = apply_cold_reach(html)
     html = apply_web_filter(html)
+    html = apply_cluster_dropdown(html)
 
     if "live-sync.js" not in html:
         if html.count("</body>") != 1:
@@ -175,10 +210,10 @@ if __name__ == "__main__":
     if len(sys.argv) == 4 and sys.argv[1] == "--web-filter":
         # Hanya filter "Jenis Web", untuk index.html yang sudah punya live-sync.
         with open(sys.argv[2], encoding="utf-8") as f:
-            out = apply_web_filter(f.read())
+            out = apply_cluster_dropdown(apply_web_filter(f.read()))
         with open(sys.argv[3], "w", encoding="utf-8") as f:
             f.write(out)
-        sys.exit(f"ok: filter Jenis Web terpasang di {sys.argv[3]}")
+        sys.exit(f"ok: filter Jenis Web dan dropdown jenis usaha terpasang di {sys.argv[3]}")
     if len(sys.argv) != 3:
         sys.exit(__doc__)
     src, dst = sys.argv[1], sys.argv[2]

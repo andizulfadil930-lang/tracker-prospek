@@ -35,6 +35,9 @@ Pratinjau "WA Script Generator", tombol Copy Script, dan link Buka WA memakai pe
 ## Filter Jenis Web
 Di panel filter ada pilihan **Semua Jenis Web** (di samping Prioritas): Ada Website, Web Gratisan, Web Mati / Pindah, Cuma WA, Cuma Instagram, Cuma Facebook, masing-masing dengan jumlahnya. Bisa digabung dengan filter lain (status, prioritas, cluster, pencarian), tampil sebagai chip, dan ikut dihapus oleh Clear Filters. Jenis dibaca dari kolom Website lewat `web-kind.js` (`-` atau kosong = Cuma WA). Kalau `index.html` diganti build baru, `apply-live-sync.py` memasangnya lagi; untuk memasang filter saja: `python3 tools/apply-live-sync.py --web-filter index.html index.html`.
 
+## Filter Jenis Usaha (dropdown)
+Daftar 100+ jenis usaha tidak lagi tampil sebagai deretan chip. Tombol **Pilih Jenis Usaha** membuka daftar centang yang bisa digulir; saat tertutup hanya jenis yang dipilih yang tampil. Dipasang ulang oleh `apply-live-sync.py` (juga lewat `--web-filter`).
+
 ## Cek kolom Website
 `python3 tools/check-websites.py` membaca Sheet dan menulis laporan `hasil-cek-web.csv`: tiap baris ditandai ADA, MATI, PINDAH (dialihkan ke domain lain), GRATISAN, IG/FB, atau BELUM ADA. Sheet dan dashboard tidak diubah. Kalau hasilnya MATI atau PINDAH dan kamu tulis kata itu di kolom Website (mis. `novis.co.id MATI`), pesan cold reach memakai pembuka "websitenya sepertinya lagi tidak bisa dibuka". Dengan `SERPER_API_KEY` dan opsi `--cari`, baris yang kosong dicari di Google dan ditandai KANDIDAT kalau ada situs yang cocok nama usahanya dan memuat nama atau nomor HP-nya.
 
