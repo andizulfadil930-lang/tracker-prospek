@@ -43,6 +43,7 @@
     ig: "Kebetulan lihat {nama} di Instagram, tapi belum ada websitenya di Google.",
     free: "Kebetulan nemu {nama} di Google, tapi websitenya masih versi gratisan.",
     own: "Kebetulan lihat {nama} sudah punya website.",
+    dead: "Kebetulan nemu {nama} di Google, tapi websitenya sepertinya lagi tidak bisa dibuka.",
   };
 
   var OPENING_OPENER = {
@@ -124,6 +125,8 @@
     if (w === "" || w === "-") return "none";
     if (/gratisan|\bfree\b|business\.site|blogspot|redirect|small web|no (lp|website) proper/.test(w)) return "free";
     if (w.indexOf("ig only") >= 0) return "ig";
+    // Hasil tools/check-websites.py (MATI / PINDAH) yang ditempel di kolom Website.
+    if (/\b(mati|pindah)\b/.test(w)) return "dead";
     if (/\.[a-z]{2,}/.test(w)) return "own";
     return "none";
   }
