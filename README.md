@@ -32,6 +32,9 @@ Pratinjau "WA Script Generator", tombol Copy Script, dan link Buka WA memakai pe
 - Ubah kalimat dengan mengedit konstanta di `cold-reach.js` (`BENEFIT`, `SITE_OPENER`, `OPENING_OPENER`, `GREETINGS`, `CLOSINGS`, `PENGIRIM`); `index.html` tidak perlu disentuh.
 - Status "baru buka" dibaca dari catatan, bukan dari nomor baris, jadi prospek 95-97 (taman, plafon, fogging) tidak lagi dapat ucapan grand opening. Filter "Grand Opening (83-97)" di dashboard masih menghitung nomor 83-97.
 
+## Filter Jenis Web
+Di panel filter ada pilihan **Semua Jenis Web** (di samping Prioritas): Ada Website, Web Gratisan, Web Mati / Pindah, Cuma WA, Cuma Instagram, Cuma Facebook, masing-masing dengan jumlahnya. Bisa digabung dengan filter lain (status, prioritas, cluster, pencarian), tampil sebagai chip, dan ikut dihapus oleh Clear Filters. Jenis dibaca dari kolom Website lewat `web-kind.js` (`-` atau kosong = Cuma WA). Kalau `index.html` diganti build baru, `apply-live-sync.py` memasangnya lagi; untuk memasang filter saja: `python3 tools/apply-live-sync.py --web-filter index.html index.html`.
+
 ## Cek kolom Website
 `python3 tools/check-websites.py` membaca Sheet dan menulis laporan `hasil-cek-web.csv`: tiap baris ditandai ADA, MATI, PINDAH (dialihkan ke domain lain), GRATISAN, IG/FB, atau BELUM ADA. Sheet dan dashboard tidak diubah. Kalau hasilnya MATI atau PINDAH dan kamu tulis kata itu di kolom Website (mis. `novis.co.id MATI`), pesan cold reach memakai pembuka "websitenya sepertinya lagi tidak bisa dibuka". Dengan `SERPER_API_KEY` dan opsi `--cari`, baris yang kosong dicari di Google dan ditandai KANDIDAT kalau ada situs yang cocok nama usahanya dan memuat nama atau nomor HP-nya.
 
